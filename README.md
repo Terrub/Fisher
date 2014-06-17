@@ -8,9 +8,9 @@ an indication of how many charges you have left on your rogue poisons.
 
 The current API does not allow for easy access to the maximum amount of charges on a given poison so;
 right now the maximum is estimated. Whenever a new poison is applied or weapons are swapped, the
-current amount of charges is considered the relative maximum. The green bar shrinks untill
-the poison wears off or the charges are depleted in which case a red bar will display indicating the
-need for reapplying.
+current amount of charges is considered the relative maximum.
+The green bar then shrinks with charge spent untill all charges are depleted, or the poison wears off,
+in which case a red bar will display indicating the need for reapplying.
 
 -- SLASH COMMANDS --
 for options type /fisher
