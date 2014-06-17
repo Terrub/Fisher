@@ -1,0 +1,9 @@
+## Interface: 11200
+## Title: Fisher
+## Notes: Poison information display for rogues
+## Author: Terrub le Programmer
+## Version: 0.0.1
+## Dependencies:
+## SavedVariables: FisherDB
+
+Fisher.lua
