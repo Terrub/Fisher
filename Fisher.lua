@@ -544,6 +544,17 @@ end
 
 --------
 
+local _finishInitialisation = function()
+	
+	-- we only need this once
+	this:UnregisterEvent("PLAYER_LOGIN");
+	
+	_validateWeaponEnchants();
+
+end
+
+--------
+
 local _storeLocalDatabaseToSavedVariables = function()
 	
 	-- #OPTION: We could have local variables for lots of DB
@@ -579,6 +590,8 @@ local _populateRequiredEvents = function()
 	
 	_addEvent("BAG_UPDATE_COOLDOWN", _validateWeaponEnchants);
 	_addEvent("UNIT_INVENTORY_CHANGED", _validateWeaponEnchants);
+	
+	_addEvent("PLAYER_LOGIN", _finishInitialisation);
 	
 end
 
@@ -643,7 +656,7 @@ end
 local _constructAddon = function()
 
 	this:SetWidth(_db[BAR_WIDTH] + 2); -- add margin left n right
-	this:SetHeight(_db[BAR_HEIGHT] * 2 + 3);
+	this:SetHeight(_db[BAR_HEIGHT] * 2 + 3); -- 2 bars, 1 px margin top, centre, bottom
 	
 	this:SetBackdrop(
 		{
@@ -663,8 +676,6 @@ local _constructAddon = function()
 
 	_populateRequiredEvents();
 	
-	_validateWeaponEnchants();
-
 end
 
 --------
