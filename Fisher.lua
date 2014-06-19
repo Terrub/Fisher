@@ -124,6 +124,10 @@ local POSITION_Y = "position_y";
 local DB_VERSION = "db_version";
 local BAR_WIDTH = "bar_width";
 local BAR_HEIGHT = "bar_height";
+local MH_ENCHANT_CURRENT_CHARGES = "mh_enchant_current_charges";
+local OH_ENCHANT_CURRENT_CHARGES = "oh_enchant_current_charges";
+local MH_ENCHANT_CURRENT_EXPIRATION = "mh_enchant_current_expiration";
+local OH_ENCHANT_CURRENT_EXPIRATION = "oh_enchant_current_expiration";
 
 local _default_db = {
 	[IS_ADDON_ACTIVATED] = false;
@@ -133,7 +137,11 @@ local _default_db = {
 	[POSITION_Y] = -150;
 	[BAR_WIDTH] = 150;
 	[BAR_HEIGHT] = 5;
-	[DB_VERSION] = 1;
+	[MH_ENCHANT_CURRENT_CHARGES] = 0;
+	[OH_ENCHANT_CURRENT_CHARGES] = 0;
+	[MH_ENCHANT_CURRENT_EXPIRATION] = 0;
+	[OH_ENCHANT_CURRENT_EXPIRATION] = 0;
+	[DB_VERSION] = 2;
 };
 
 ----------------------------------------------------------------
@@ -526,6 +534,11 @@ local _loadSavedVariables = function()
 		_db = merge(_default_db, _db);
 		
 	end
+	
+	_mh_ench_max_charges = _db[MH_ENCHANT_CURRENT_CHARGES];
+	_oh_ench_max_charges = _db[OH_ENCHANT_CURRENT_CHARGES];
+	_mh_ench_expiration	= _db[MH_ENCHANT_CURRENT_EXPIRATION];
+	_oh_ench_expiration = _db[OH_ENCHANT_CURRENT_EXPIRATION];
 
 end
 
@@ -541,6 +554,11 @@ local _storeLocalDatabaseToSavedVariables = function()
 	--			track of which changed and should be updated.
 	--			Something we can just loop through so load and
 	--			unload never desync.
+	
+	_db[MH_ENCHANT_CURRENT_CHARGES] = _mh_ench_max_charges or 0;
+	_db[OH_ENCHANT_CURRENT_CHARGES] = _oh_ench_max_charges or 0;
+	_db[MH_ENCHANT_CURRENT_EXPIRATION] = _mh_ench_expiration or 0;
+	_db[OH_ENCHANT_CURRENT_EXPIRATION] = _oh_ench_expiration or 0;
 	
 	-- Commit to local storage
 	FisherDB[_profile_id] = _db;
@@ -583,7 +601,7 @@ local _createMHProgressBar = function()
 		}
 	);
 	
-	_mh_progress_bar:SetBackdropColor(0.3, 0.3, 0.3, 1);
+	_mh_progress_bar:SetBackdropColor(0, 0.5, 0, 1);
 	
 	_mh_progress_bar:SetWidth(_db[BAR_WIDTH]);
 	_mh_progress_bar:SetHeight(_db[BAR_HEIGHT]);
@@ -611,7 +629,7 @@ local _createOHProgressBar = function()
 		}
 	);
 	
-	_oh_progress_bar:SetBackdropColor(0.3, 0.3, 0.3, 1);
+	_oh_progress_bar:SetBackdropColor(0, 0.5, 0, 1);
 	
 	_oh_progress_bar:SetWidth(_db[BAR_WIDTH]);
 	_oh_progress_bar:SetHeight(_db[BAR_HEIGHT]);
@@ -811,7 +829,7 @@ local _populateSlashCommandList = function()
 	_addSlashCommand(
 		"lock",
 		_toggleLockToScreen,
-		'<|cff9999fftoggle|r> |cff999999-- Toggle whether the bars are movable.|r',
+		'<|cff9999fftoggle|r> |cff999999-- Toggle whether the bars are locked to the screen.|r',
 		IS_ADDON_LOCKED
 	);
 		
