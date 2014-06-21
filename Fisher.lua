@@ -158,12 +158,12 @@ local _db;
 -- Main hand enchant
 local _mh_progress_bar;
 local _mh_ench_expiration = 0;
-local _mh_ench_charges = 0;
+local _mh_ench_max_charges = 0;
 
 -- Off hand enchant
 local _oh_progress_bar;
 local _oh_ench_expiration = 0;
-local _oh_ench_charges = 0;
+local _oh_ench_max_charges = 0;
 
 local _event_handlers;
 local _command_list;
@@ -228,6 +228,7 @@ local _resetMainHandWeapon = function()
 	_mh_progress_bar:SetWidth(_db[BAR_WIDTH]);
 	_mh_progress_bar:SetBackdropColor(0.5, 0, 0, 1); -- Turn red to indicate empty
 	_mh_ench_expiration = 0;
+	_mh_ench_max_charges = 0;
 
 end
 
@@ -238,59 +239,13 @@ local _resetOffHandWeapon = function()
 	_oh_progress_bar:SetWidth(_db[BAR_WIDTH]);
 	_oh_progress_bar:SetBackdropColor(0.5, 0, 0, 1); -- Turn red to indicate empty
 	_oh_ench_expiration = 0;
+	_oh_ench_max_charges = 0;
 	
 end
 
 --------
 
-local _setMainHandWeaponEnchant = function(cur_charges, max_charges)
-
-	if max_charges then
-		-- prt("New MH enchant?");
-		if type(max_charges) ~= "number" then
-		
-			error("Usage: _setMainHandWeaponEnchant(cur_charges <number>, max_charges <number>)");
-		
-		end
-	
-		_mh_ench_max_charges = mathMax(max_charges, 0);
-		_mh_progress_bar:SetBackdropColor(0, 0.5, 0, 1);
-	
-	end
-	
-	-- prt("MH normal update");
-	_mh_ench_charges = cur_charges;
-	
-	_mh_progress_bar:SetWidth(_db[BAR_WIDTH] * mathMin((cur_charges / _mh_ench_max_charges), 1));
-
-end
-
---------
-
-local _setOffHandWeaponEnchant = function(cur_charges, max_charges)
-
-	if max_charges then
-		-- prt("New OH enchant?");
-		if type(max_charges) ~= "number" then
-		
-			error("Usage: _setOffHandWeaponEnchant(cur_charges <number>, max_charges <number>)");
-		
-		end
-	
-		_oh_ench_max_charges = mathMax(max_charges, 0);
-		_oh_progress_bar:SetBackdropColor(0, 0.5, 0, 1);
-	
-	end
-	
-	_oh_ench_charges = cur_charges;
-	
-	_oh_progress_bar:SetWidth(_db[BAR_WIDTH] * mathMin((cur_charges / _oh_ench_max_charges), 1));
-
-end
-
---------
-
-local _validateMainHandEnchant = function(mh_ench, mh_expiration, mh_charges)
+local _validateMainHandEnchant = function(mh_ench, mh_expiration, mh_charges, explicit_max_charges)
 
 	if not mh_ench then
 		-- prt("Used to have a mh enchant we now lost.");
@@ -299,51 +254,42 @@ local _validateMainHandEnchant = function(mh_ench, mh_expiration, mh_charges)
 	
 	end
 	
-	if mh_expiration then
+	if 	mh_expiration > _mh_ench_expiration
+	or	mh_charges > _mh_ench_max_charges then
 	
-		if mh_expiration > _mh_ench_expiration then
-			-- prt("New enchant probably. Need to update max charges and what not.");
-			_setMainHandWeaponEnchant(mh_charges, mh_charges);
-		
-		else
-		
-			_setMainHandWeaponEnchant(mh_charges);
-			
-		end
-		
+		_mh_ench_max_charges = explicit_max_charges or mh_charges;
 		_mh_ench_expiration = mh_expiration;
-	
+		
+		_mh_progress_bar:SetBackdropColor(0, 0.5, 0, 1);
+			
 	end
+	
+	_mh_progress_bar:SetWidth(mh_charges / _mh_ench_max_charges * _db[BAR_WIDTH]);
 	
 end
 
 --------
 
-local _validateOffHandEnchant = function(oh_ench, oh_expiration, oh_charges)
+local _validateOffHandEnchant = function(oh_ench, oh_expiration, oh_charges, explicit_max_charges)
 
 	if not oh_ench then
-		-- prt("Used to have an offhand enchant we now lost.");
+		-- prt("Used to have a mh enchant we now lost.");
 		_resetOffHandWeapon();
 		return;
 	
 	end
-
-	if oh_expiration then
-
-		
-		if oh_expiration > _oh_ench_expiration then
-			-- prt("New offhand enchant. Need to update max charges and what not.");
-			_setOffHandWeaponEnchant(oh_charges, oh_charges);
-
-		else
-
-			_setOffHandWeaponEnchant(oh_charges);
-			
-		end
-
-		_oh_ench_expiration = oh_expiration;
 	
+	if 	oh_expiration > _oh_ench_expiration
+	or	oh_charges > _oh_ench_max_charges then
+	
+		_oh_ench_max_charges = explicit_max_charges or oh_charges;
+		_oh_ench_expiration = oh_expiration;
+		
+		_oh_progress_bar:SetBackdropColor(0, 0.5, 0, 1);
+			
 	end
+	
+	_oh_progress_bar:SetWidth(oh_charges / _oh_ench_max_charges * _db[BAR_WIDTH]);
 	
 end
 
@@ -535,11 +481,6 @@ local _loadSavedVariables = function()
 		
 	end
 	
-	_mh_ench_max_charges = _db[MH_ENCHANT_CURRENT_CHARGES];
-	_oh_ench_max_charges = _db[OH_ENCHANT_CURRENT_CHARGES];
-	_mh_ench_expiration	= _db[MH_ENCHANT_CURRENT_EXPIRATION];
-	_oh_ench_expiration = _db[OH_ENCHANT_CURRENT_EXPIRATION];
-
 end
 
 --------
@@ -547,10 +488,14 @@ end
 local _finishInitialisation = function()
 	
 	-- we only need this once
-	this:UnregisterEvent("PLAYER_LOGIN");
+	this:UnregisterEvent("PLAYER_ENTERING_WORLD");
 	
-	_validateWeaponEnchants();
+	local 	is_mh_ench, _, mh_ench_charges,
+			is_oh_ench, _, oh_ench_charges = GetWeaponEnchantInfo();
 
+	_validateMainHandEnchant(is_mh_ench, _db[MH_ENCHANT_CURRENT_EXPIRATION], mh_ench_charges, _db[MH_ENCHANT_CURRENT_CHARGES]);
+	_validateOffHandEnchant(is_oh_ench, _db[OH_ENCHANT_CURRENT_EXPIRATION], oh_ench_charges, _db[OH_ENCHANT_CURRENT_CHARGES]);
+	
 end
 
 --------
@@ -567,8 +512,8 @@ local _storeLocalDatabaseToSavedVariables = function()
 	--			unload never desync.
 	
 	_db[MH_ENCHANT_CURRENT_CHARGES] = _mh_ench_max_charges or 0;
-	_db[OH_ENCHANT_CURRENT_CHARGES] = _oh_ench_max_charges or 0;
 	_db[MH_ENCHANT_CURRENT_EXPIRATION] = _mh_ench_expiration or 0;
+	_db[OH_ENCHANT_CURRENT_CHARGES] = _oh_ench_max_charges or 0;
 	_db[OH_ENCHANT_CURRENT_EXPIRATION] = _oh_ench_expiration or 0;
 	
 	-- Commit to local storage
@@ -591,7 +536,7 @@ local _populateRequiredEvents = function()
 	_addEvent("BAG_UPDATE_COOLDOWN", _validateWeaponEnchants);
 	_addEvent("UNIT_INVENTORY_CHANGED", _validateWeaponEnchants);
 	
-	_addEvent("PLAYER_LOGIN", _finishInitialisation);
+	_addEvent("PLAYER_ENTERING_WORLD", _finishInitialisation);
 	
 end
 
@@ -614,7 +559,8 @@ local _createMHProgressBar = function()
 		}
 	);
 	
-	_mh_progress_bar:SetBackdropColor(0, 0.5, 0, 1);
+	_mh_progress_bar:SetBackdropColor(0.3, 0.3, 0.3, 1); -- Gray because not loaded.
+	
 	
 	_mh_progress_bar:SetWidth(_db[BAR_WIDTH]);
 	_mh_progress_bar:SetHeight(_db[BAR_HEIGHT]);
@@ -642,7 +588,7 @@ local _createOHProgressBar = function()
 		}
 	);
 	
-	_oh_progress_bar:SetBackdropColor(0, 0.5, 0, 1);
+	_oh_progress_bar:SetBackdropColor(0.3, 0.3, 0.3, 1); -- Gray because not loaded.
 	
 	_oh_progress_bar:SetWidth(_db[BAR_WIDTH]);
 	_oh_progress_bar:SetHeight(_db[BAR_HEIGHT]);
